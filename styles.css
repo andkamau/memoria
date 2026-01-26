@@ -1,0 +1,464 @@
+/* UI/UX Specification: Memoria (Afrofuturism Theme - Teal & Gold Edition) */
+
+:root {
+    /* Color Palette */
+    --bg-deep: #020405;
+    /* Deep Void */
+    --bg-surface: #0a0f12;
+    /* Darker tone */
+    --bg-card: rgba(10, 20, 25, 0.7);
+    /* Teal-tinted Glass */
+
+    --accent-gold: #FFD600;
+    /* Solar Gold */
+    --accent-primary: #00E5FF;
+    /* Cyan/Teal (Replacing Purple) */
+    --accent-secondary: #00BFA5;
+    /* Deep Teal */
+
+    --text-primary: #e0f7fa;
+    /* Ice White */
+    --text-secondary: #b2ebf2;
+    /* Soft Cyan */
+    --text-muted: #546e7a;
+    /* Muted Slate */
+
+    --border-subtle: rgba(0, 229, 255, 0.15);
+    /* Cyan tint border */
+
+    /* Spacing */
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+
+    /* Radius */
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+
+    /* Shadows */
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 15px rgba(0, 229, 255, 0.15);
+}
+
+body {
+    background-color: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(0, 191, 165, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(255, 214, 0, 0.05) 0%, transparent 40%);
+    background-attachment: fixed;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-deep);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #004d40;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #00695c;
+}
+
+header {
+    padding: var(--space-lg);
+    background: rgba(2, 4, 5, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+h1 {
+    font-size: 28px;
+    margin: 0 0 var(--space-md) 0;
+    background: linear-gradient(90deg, #fff, var(--accent-primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tabs {
+    display: flex;
+    gap: var(--space-lg);
+}
+
+.tab {
+    background: none;
+    border: none;
+    font-size: 16px;
+    padding: var(--space-sm) 0;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.tab:hover {
+    color: var(--text-primary);
+}
+
+.tab.active {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+#manage-data-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s;
+}
+
+#manage-data-link:hover {
+    color: var(--text-primary);
+}
+
+.search-container {
+    margin-top: var(--space-lg);
+    position: relative;
+}
+
+#search-bar {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+    background: rgba(0, 229, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: white;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+
+#search-bar:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.2);
+    background: rgba(0, 229, 255, 0.08);
+}
+
+main {
+    padding: var(--space-lg);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Filter Chips */
+.filter-chips {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.filter-chip {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-chip:hover {
+    background: rgba(0, 229, 255, 0.1);
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+
+.filter-chip.active {
+    background: rgba(0, 191, 165, 0.2);
+    border-color: var(--accent-secondary);
+    color: var(--accent-primary);
+    padding-left: 12px;
+}
+
+.filter-chip.active::before {
+    content: "✓";
+    display: inline-block;
+    font-weight: bold;
+    font-size: 12px;
+    margin-right: 2px;
+}
+
+/* Accordion Group Styles */
+.history-group {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.history-group[open] {
+    border-color: rgba(0, 229, 255, 0.3);
+}
+
+.group-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.02);
+    transition: background 0.2s;
+    list-style: none;
+    /* Hide default triangle */
+}
+
+.group-header::-webkit-details-marker {
+    display: none;
+}
+
+.group-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.header-text {
+    font-weight: 600;
+    color: var(--accent-gold);
+    font-size: 14px;
+    flex-grow: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.header-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-right: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.chevron {
+    color: var(--text-muted);
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.history-group[open] .chevron {
+    transform: rotate(180deg);
+}
+
+.history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-top: 1px solid var(--border-subtle);
+    max-height: 0;
+    /* Animate height? Native details doesn't animate easily, but this keeps it clean */
+    display: block;
+    /* Override default behavior if needed, but standard details works best without complex CSS animations for height */
+}
+
+.history-group[open] .history-list {
+    max-height: none;
+}
+
+/* History Items */
+.history-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background 0.2s;
+}
+
+.history-list li:last-child {
+    border-bottom: none;
+}
+
+.history-list li:hover {
+    background: rgba(0, 229, 255, 0.05);
+}
+
+.history-list .time {
+    color: var(--text-muted);
+    font-size: 12px;
+    min-width: 55px;
+    font-family: monospace;
+    /* Tech feel */
+}
+
+.history-list a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-list .domain {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.history-list .img-container {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.history-list .favicon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+}
+
+
+/* Cards (Journeys) */
+.card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card), var(--shadow-glow);
+    border-color: var(--accent-secondary);
+}
+
+.card h3 {
+    margin: 0 0 var(--space-sm) 0;
+    font-size: 18px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.card .metadata {
+    font-size: 13px;
+    color: var(--accent-gold);
+    margin-bottom: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.card .controls button {
+    background: rgba(0, 229, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: var(--radius-lg);
+    transition: all 0.2s;
+}
+
+.card .controls button:hover {
+    background: rgba(0, 229, 255, 0.15);
+    border-color: var(--accent-primary);
+}
+
+.journey-steps {
+    list-style: none;
+    padding-left: 0;
+    margin: var(--space-md) 0 0 0;
+    transition: all 0.3s ease;
+}
+
+.journey-steps.hidden {
+    display: none;
+}
+
+.journey-steps li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.journey-steps a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    flex: 1;
+}
+
+/* Modal */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: #12181b;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    padding: 40px;
+    border-radius: 16px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.modal button {
+    background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+    color: #000;
+    font-weight: 700;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 20px;
+    font-size: 16px;
+}
+
+.modal button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4);
+}
