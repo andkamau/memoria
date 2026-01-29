@@ -1,216 +1,241 @@
 // main.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    const journeysTab = document.getElementById('journeys-tab');
-    const allHistoryTab = document.getElementById('all-history-tab');
-    const contentArea = document.getElementById('content-area');
-    const searchBar = document.getElementById('search-bar');
+    // --- State Management ---
+    const state = {
+        activeContext: 'all', // 'all' or journeyIndex (number)
+        timeRange: 'all',     // 'all', 'today', 'yesterday', 'week', 'month'
+        searchQuery: '',
 
-    let fullHistory = [];
-    let currentJourneys = [];
+        // Data
+        fullHistory: [],
+        journeys: [], // { title, pages: [], relevance, isTopSite }
+        isLoadingJourneys: true
+    };
 
-    function showOnboarding() {
-        chrome.storage.local.get(['onboardingComplete'], (result) => {
-            if (result.onboardingComplete) return;
+    // --- DOM Elements ---
+    const els = {
+        journeysList: document.getElementById('journeys-list'),
+        navAllHistory: document.getElementById('nav-all-history'),
+        viewTitle: document.getElementById('view-title'),
+        searchBar: document.getElementById('search-bar'),
+        timeFilter: document.getElementById('time-filter'),
+        contentArea: document.getElementById('content-area'),
+    };
 
-            const backdrop = document.createElement('div');
-            backdrop.className = 'modal-backdrop';
-            backdrop.innerHTML = `
-                <div class="modal">
-                    <h2>Welcome to Memoria</h2>
-                    <p>Memoria uses AI to organize your browsing history into meaningful "Journeys".</p>
-                    <p>Say goodbye to endless scrolling and rediscovery your past browsing sessions with context.</p>
-                    <button id="close-onboarding">Get Started</button>
-                </div>
-            `;
-            document.body.appendChild(backdrop);
+    // --- Initialization ---
+    init();
 
-            document.getElementById('close-onboarding').addEventListener('click', () => {
-                chrome.storage.local.set({ onboardingComplete: true });
-                backdrop.remove();
-            });
-        });
+    async function init() {
+        showOnboarding();
+        bindEvents();
+
+        // Load initial history
+        const historyItems = await searchHistory(90); // Last 90 days
+        state.fullHistory = historyItems || [];
+
+        // Initial Render (Library view)
+        renderApp();
+
+        // Load Journeys in background
+        loadJourneys();
     }
 
-    function renderJourneys(journeys) {
-        if (!journeys || journeys.length === 0) {
-            contentArea.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">No journeys found. Try browsing a bit more!</div>';
-            return;
+
+    // --- Bind Events ---
+    function bindEvents() {
+        // Nav Toggle
+        const navToggle = document.getElementById('nav-toggle');
+        if (navToggle) {
+            navToggle.addEventListener('click', () => {
+                document.body.classList.toggle('rail-collapsed');
+            });
         }
 
-        contentArea.innerHTML = `
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
-                <button id="refresh-journeys" style="
-                    background: transparent; 
-                    border: 1px solid var(--border-subtle); 
-                    color: var(--text-secondary); 
-                    padding: 6px 12px; 
-                    border-radius: 20px; 
-                    cursor: pointer;
-                    font-size: 12px;
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                ">
-                   🔄 Refresh Journeys
-                </button>
-            </div>
-        `;
+        // Navigation: All History
+        els.navAllHistory.addEventListener('click', () => {
+            state.activeContext = 'all';
+            renderApp();
+        });
 
-        // Add listener for refresh
-        setTimeout(() => {
-            document.getElementById('refresh-journeys')?.addEventListener('click', () => {
-                loadAndDisplayJourneys(true);
-            });
-        }, 0);
+        // Search
+        els.searchBar.addEventListener('input', (e) => {
+            state.searchQuery = e.target.value.toLowerCase();
+            renderApp();
+        });
 
-        journeys.forEach(journey => {
-            const card = document.createElement('div');
-            card.className = 'card';
-
-            // Format relevance as percentage
-            const relevanceScore = Math.round((journey.relevance || 0) * 100);
-
-            card.innerHTML = `
-                <h3>${journey.title}</h3>
-                <div class="metadata">
-                    <span style="color: var(--accent-cyan);">✦</span> ${relevanceScore}% Relevance
-                </div>
-                <div class="controls">
-                    <button class="expand-btn">View ${journey.pages.length} Pages</button>
-                </div>
-                <ul class="journey-steps hidden">
-                    ${journey.pages.map(page => {
-                const domain = new URL(page.url).hostname.replace('www.', '');
-                const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-                return `
-                        <li>
-                            <div class="img-container">
-                                <img src="${faviconUrl}" class="favicon" alt="" loading="lazy">
-                            </div>
-                            <a href="${page.url}" target="_blank" title="${page.title}">${page.title || page.url}</a>
-                            <span class="domain">${domain}</span>
-                        </li>
-                        `;
-            }).join('')}
-                </ul>
-            `;
-
-            // Toggle logic
-            const expandBtn = card.querySelector('.expand-btn');
-            const stepsList = card.querySelector('.journey-steps');
-
-            expandBtn.addEventListener('click', () => {
-                const isHidden = stepsList.classList.contains('hidden');
-                if (isHidden) {
-                    stepsList.classList.remove('hidden');
-                    expandBtn.textContent = 'Hide Pages';
-                } else {
-                    stepsList.classList.add('hidden');
-                    expandBtn.textContent = `View ${journey.pages.length} Pages`;
-                }
-            });
-
-            contentArea.appendChild(card);
+        // Time Filter
+        els.timeFilter.addEventListener('change', (e) => {
+            state.timeRange = e.target.value;
+            renderApp();
         });
     }
 
-    async function loadAndDisplayJourneys(forceRefresh = false) {
-        contentArea.innerHTML = '<p>✨ Analyzing your history with AI...</p>';
+    function searchHistory(daysBack) {
+        return new Promise(resolve => {
+            const msPerDay = 1000 * 60 * 60 * 24;
+            const startTime = new Date().getTime() - (daysBack * msPerDay);
+            chrome.history.search({
+                text: '',
+                maxResults: 5000,
+                startTime: startTime
+            }, resolve);
+        });
+    }
 
+    async function loadJourneys() {
         try {
-            // Check Cache first
-            if (!forceRefresh) {
-                const cachedData = await chrome.storage.local.get(['cachedJourneys', 'journeysTimestamp']);
-                const now = Date.now();
-                const oneHour = 60 * 60 * 1000;
+            // Check Cache
+            const cachedData = await chrome.storage.local.get(['cachedJourneys', 'journeysTimestamp']);
+            const now = Date.now();
+            const oneHour = 60 * 60 * 1000;
 
-                if (cachedData.cachedJourneys && cachedData.journeysTimestamp && (now - cachedData.journeysTimestamp < oneHour)) {
-                    console.log("Loading journeys from cache...");
-                    currentJourneys = cachedData.cachedJourneys;
-                    renderJourneys(currentJourneys);
-                    return;
-                }
+            if (cachedData.cachedJourneys && cachedData.journeysTimestamp && (now - cachedData.journeysTimestamp < oneHour)) {
+                console.log("Loading journeys from cache...");
+                state.journeys = cachedData.cachedJourneys;
+                state.isLoadingJourneys = false;
+                renderSidebar();
+                return;
             }
 
-            // Fetch new if no cache or stale
-            const result = await createJourneysFromHistory(fullHistory);
-            currentJourneys = result.journeys;
+            // Generate New
+            state.isLoadingJourneys = true;
+            renderSidebar(); // Show loading state
 
-            // Save to Cache
+            const result = await createJourneysFromHistory(state.fullHistory);
+            state.journeys = result.journeys; // Combined Top Sites + Semantic
+
+            // Cache
             await chrome.storage.local.set({
-                cachedJourneys: currentJourneys,
+                cachedJourneys: state.journeys,
                 journeysTimestamp: Date.now()
             });
 
-            renderJourneys(currentJourneys);
         } catch (error) {
             console.error("Failed to load journeys:", error);
+            // If API Key missing, we might want to show a prompt in the sidebar
             if (error.message === "API_KEY_MISSING") {
-                contentArea.innerHTML = `
-                    <div style="text-align: center; padding: 2rem;">
-                        <p style="font-size: 1.1rem; color: #555;">To see your history journeys, you need to set your Gemini API Key.</p>
-                        <button id="open-settings" style="
-                            background-color: var(--accent-purple); 
-                            color: white; 
-                            border: none; 
-                            padding: 10px 20px; 
-                            border-radius: 6px; 
-                            cursor: pointer; 
-                            font-size: 1rem;
-                            margin-top: 10px;
-                        ">Open Settings</button>
-                    </div>
-                `;
-                document.getElementById('open-settings').addEventListener('click', () => {
-                    chrome.runtime.openOptionsPage();
-                });
-            } else {
-                contentArea.innerHTML = `<p style="color: #ff4444;">Error: ${error.message || 'Could not analyze browsing history.'}</p>`;
+                state.journeysError = "API Key Missing";
             }
+        } finally {
+            state.isLoadingJourneys = false;
+            renderSidebar();
         }
     }
 
-    function renderAllHistory(historyItems) {
-        contentArea.innerHTML = '';
+    // --- Rendering ---
 
-        if (!historyItems || historyItems.length === 0) {
-            contentArea.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">No history matches your search.</div>';
+    function renderApp() {
+        renderSidebar(); // Update active states
+        renderContent(); // Update main content
+    }
+
+    function renderSidebar() {
+        // 1. All History Active State (still in rail)
+        if (state.activeContext === 'all') {
+            els.navAllHistory.classList.add('active');
+        } else {
+            els.navAllHistory.classList.remove('active');
+        }
+
+        // 2. Journeys List (Now in Main Pane)
+        const container = els.journeysList;
+        container.innerHTML = '';
+
+        if (state.isLoadingJourneys) {
+            container.innerHTML = '<div class="loading-state">Analyzing your history to find Journeys...</div>';
             return;
         }
 
-        // Create Filter Chips
-        const filterContainer = document.createElement('div');
-        filterContainer.className = 'filter-chips';
-        filterContainer.innerHTML = `
-            <button class="filter-chip active" data-range="all">All Time</button>
-            <button class="filter-chip" data-range="today">Today</button>
-            <button class="filter-chip" data-range="yesterday">Yesterday</button>
-            <button class="filter-chip" data-range="week">Last Week</button>
-            <button class="filter-chip" data-range="month">Last 30 Days</button>
-        `;
-        contentArea.appendChild(filterContainer);
-
-        // Filter Logic Binding
-        filterContainer.querySelectorAll('.filter-chip').forEach(chip => {
-            chip.addEventListener('click', (e) => {
-                // Update active state
-                filterContainer.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-                e.target.classList.add('active');
-
-                // Apply filter
-                const range = e.target.dataset.range;
-                const filtered = filterHistoryByRange(historyItems, range);
-                renderHistoryList(filtered);
+        if (state.journeysError) {
+            container.innerHTML = `
+                <div class="loading-state" style="color: var(--md-sys-color-error); cursor: pointer;" id="sidebar-error-msg">
+                    ⚠️ Setup Required to see Journeys
+                </div>
+             `;
+            document.getElementById('sidebar-error-msg').addEventListener('click', () => {
+                chrome.runtime.openOptionsPage();
             });
+            return;
+        }
+
+        if (state.journeys.length === 0) {
+            container.innerHTML = '<div class="loading-state">No journeys found yet. Browsing more helps!</div>';
+            return;
+        }
+
+        state.journeys.forEach((journey, index) => {
+            const card = document.createElement('div');
+            card.className = `journey-card genux-ripple ${state.activeContext === index ? 'active' : ''}`;
+
+            // Icon
+            const iconName = journey.isTopSite ? 'star' : 'auto_awesome';
+            const iconColor = journey.isTopSite ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-tertiary)';
+
+            // Metadata Chips
+            // Assuming journey might have metadata or we derive it from pages
+            // For now, let's show date range or item count as chips if not strictly metadata
+            const itemCount = journey.pages.length;
+            const timeLabel = journey.pages.length > 0 ?
+                new Date(journey.pages[0].lastVisitTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">${journey.title}</h3>
+                    <span class="material-symbols-outlined card-icon">${iconName}</span>
+                </div>
+                
+                <div class="card-meta">
+                    <span class="metadata-chip chip-frequent">${itemCount} items</span>
+                    ${timeLabel ? `<span class="metadata-chip" style="background:var(--md-sys-color-surface-container-high)">${timeLabel}</span>` : ''}
+                </div>
+                
+                <div class="card-stats">
+                   ${journey.isTopSite ? 'Top Site' : 'AI curated'}
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                state.activeContext = index;
+                renderApp();
+            });
+
+            container.appendChild(card);
         });
+    }
 
-        // Initial List Render
-        const listContainer = document.createElement('div');
-        listContainer.id = 'history-list-container';
-        contentArea.appendChild(listContainer);
+    function renderContent() {
+        // 1. Determine Source Data
+        let items = [];
+        if (state.activeContext === 'all') {
+            items = state.fullHistory;
+            els.viewTitle.textContent = "All History";
+        } else {
+            const journey = state.journeys[state.activeContext];
+            if (journey) {
+                items = journey.pages;
+                els.viewTitle.textContent = journey.title;
+            } else {
+                // Fallback
+                items = state.fullHistory;
+                state.activeContext = 'all';
+                els.viewTitle.textContent = "All History";
+            }
+        }
 
-        renderHistoryList(historyItems);
+        // 2. Apply Time Filter
+        items = filterHistoryByRange(items, state.timeRange);
+
+        // 3. Apply Search
+        if (state.searchQuery) {
+            items = items.filter(item =>
+                (item.title && item.title.toLowerCase().includes(state.searchQuery)) ||
+                item.url.toLowerCase().includes(state.searchQuery)
+            );
+        }
+
+        // 4. Render Groups (Always Grouped)
+        renderHistoryGroups(items);
     }
 
     function filterHistoryByRange(items, range) {
@@ -225,7 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const end = new Date();
             end.setDate(now.getDate() - 1);
             end.setHours(23, 59, 59, 999);
-            // Special case for yesterday: strict range
             return items.filter(item => item.lastVisitTime >= start.getTime() && item.lastVisitTime <= end.getTime());
         } else if (range === 'week') {
             start.setDate(now.getDate() - 7);
@@ -238,12 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return items.filter(item => item.lastVisitTime >= start.getTime());
     }
 
-    function renderHistoryList(items) {
-        const container = document.getElementById('history-list-container');
-        if (!container) return;
+    function renderHistoryGroups(items) {
+        const container = els.contentArea;
+        container.innerHTML = '';
 
         if (items.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">No results for this time range.</div>';
+            container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">No items found.</div>';
             return;
         }
 
@@ -257,99 +281,73 @@ document.addEventListener('DOMContentLoaded', () => {
             grouped[date].push(item);
         });
 
+        // Always expand Today, others collapsed by default?
+        // Or if searching/filtering small set, expand all.
+        const shouldExpandAll = state.searchQuery.length > 0 || items.length < 10;
         const todayStr = new Date().toLocaleDateString(undefined, {
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        let html = '';
-        const searchActive = searchBar.value.trim().length > 0;
-
         for (const [date, dayItems] of Object.entries(grouped)) {
-            // Expand if it's Today OR if a search is active (to show results)
-            const isExpanded = date === todayStr || searchActive ? 'open' : '';
+            const isExpanded = (date === todayStr || shouldExpandAll) ? 'open' : '';
 
-            html += `
-            <details class="history-group" ${isExpanded}>
+            // Limit shown items per group if huge? No, user can scroll.
+
+            const groupEl = document.createElement('details');
+            groupEl.className = 'history-group';
+            if (isExpanded) groupEl.setAttribute('open', '');
+
+            groupEl.innerHTML = `
                 <summary class="group-header">
                     <span class="header-text">${date}</span>
                     <span class="header-count">${dayItems.length} items</span>
                     <span class="chevron">▼</span>
                 </summary>
                 <ul class="history-list">
+                    ${dayItems.map(item => {
+                        const domain = new URL(item.url || 'http://localhost').hostname.replace('www.', '');
+                        const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+                        const time = new Date(item.lastVisitTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+                        return `
+                            <li class="genux-ripple">
+                                <span class="time">${time}</span>
+                                <div class="img-container">
+                                    <img src="${faviconUrl}" class="favicon" alt="" loading="lazy">
+                                </div>
+                                <a href="${item.url}" target="_blank" title="${item.title}">${item.title || item.url}</a>
+                                ${item.metadata ? item.metadata.map(m => `<span class="metadata-chip chip-${m.type}">${m.label}</span>`).join('') : ''}
+                                <span class="domain">${domain}</span>
+                            </li>
+                        `;
+                    }).join('')}
+                </ul>
             `;
 
-            html += dayItems.map(item => {
-                const domain = new URL(item.url).hostname.replace('www.', '');
-                const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-                const time = new Date(item.lastVisitTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-
-                return `
-                    <li>
-                        <span class="time">${time}</span>
-                        <div class="img-container" style="width: 24px; height: 24px; min-width: 24px;">
-                            <img src="${faviconUrl}" class="favicon" alt="" style="width: 16px; height: 16px;">
-                        </div>
-                        <a href="${item.url}" target="_blank" title="${item.title}">${item.title || item.url}</a>
-                        <span class="domain">${domain}</span>
-                    </li>
-                    `;
-            }).join('');
-            html += `</ul></details>`;
-        }
-
-        container.innerHTML = html;
-
-        // Add click listeners to summaries to toggle chevron rotation if needed via JS, 
-        // though CSS can handle 'details[open] .chevron' usually.
-    }
-
-    // Initialize Search Listener
-    searchBar.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        if (allHistoryTab.classList.contains('active')) {
-            // In All History: Client-side filter
-            const filtered = fullHistory.filter(item =>
-                (item.title && item.title.toLowerCase().includes(query)) ||
-                item.url.toLowerCase().includes(query)
-            );
-            // Re-render only list part to avoid losing filter chips if desired, 
-            // but for simplicity calling renderAllHistory is fine, though it resets chips.
-            // Better: update the current rendered list.
-            // Let's simplified: If search is active, we just render the list with matches, ignoring date chips for simplicity or resetting them.
-            // Implementing robust search:
-            const container = document.getElementById('history-list-container');
-            if (container) {
-                renderHistoryList(filtered);
-            }
-        }
-    });
-
-    function setActiveTab(tab) {
-        searchBar.value = '';
-        journeysTab.classList.remove('active');
-        allHistoryTab.classList.remove('active');
-        tab.classList.add('active');
-
-        if (tab === journeysTab) {
-            if (fullHistory.length === 0) {
-                contentArea.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">No browsing history to analyze.</div>';
-                return;
-            }
-            loadAndDisplayJourneys();
-        } else {
-            renderAllHistory(fullHistory);
+            container.appendChild(groupEl);
         }
     }
 
-    // --- Event Listeners ---
-    journeysTab.addEventListener('click', () => setActiveTab(journeysTab));
-    allHistoryTab.addEventListener('click', () => setActiveTab(allHistoryTab));
+    function showOnboarding() {
+        chrome.storage.local.get(['onboardingComplete'], (result) => {
+            if (result.onboardingComplete) return;
 
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop';
+            backdrop.innerHTML = `
+                <div class="modal">
+                    <h2>Welcome to Memoria</h2>
+                    <p>Memoria organizes your browsing history into meaningful Journeys.</p>
+                    <p>Select a Journey from the sidebar to filter your history, or explore the Library for everything.</p>
+                    <button id="close-onboarding">Let's Go</button>
+                </div>
+            `;
+            document.body.appendChild(backdrop);
 
-    // --- Initial Load ---
-    showOnboarding();
-    chrome.history.search({ text: '', maxResults: 1000, startTime: new Date().setDate(new Date().getDate() - 90) }, (historyItems) => {
-        fullHistory = historyItems || []; // Ensure fullHistory is always an array
-        setActiveTab(journeysTab); // Default to journeys view
-    });
+            document.getElementById('close-onboarding').addEventListener('click', () => {
+                chrome.storage.local.set({ onboardingComplete: true });
+                backdrop.remove();
+            });
+        });
+    }
 });
