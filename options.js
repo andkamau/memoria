@@ -16,7 +16,7 @@ const saveOptions = () => {
     { geminiApiKey: apiKey },
     () => {
       // Update status to let user know options were saved.
-      status.textContent = 'Settings saved! Redirecting to history...';
+      status.textContent = 'API Key saved! Redirecting to history...';
       status.style.color = '#2e7d32';
 
       setTimeout(() => {
@@ -31,8 +31,20 @@ const saveOptions = () => {
   );
 };
 
-// Restores select box and checkbox state using the preferences
-// stored in chrome.storage.
+// Removes the API key from chrome.storage
+const removeOptions = () => {
+  const status = document.getElementById('status');
+  chrome.storage.sync.remove('geminiApiKey', () => {
+    document.getElementById('apiKey').value = '';
+    status.textContent = 'API Key removed.';
+    status.style.color = '#2e7d32';
+    setTimeout(() => {
+      status.textContent = '';
+    }, 3000);
+  });
+};
+
+// Restores the API key input field from chrome.storage.
 const restoreOptions = () => {
   chrome.storage.sync.get(
     { geminiApiKey: '' }, // Default value
@@ -44,3 +56,4 @@ const restoreOptions = () => {
 
 document.addEventListener('DOMContentLoaded', restoreOptions);
 document.getElementById('save').addEventListener('click', saveOptions);
+document.getElementById('remove').addEventListener('click', removeOptions);

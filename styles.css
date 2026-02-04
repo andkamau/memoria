@@ -481,6 +481,14 @@ body.rail-collapsed .footer-link span:not(.material-symbols-outlined) {
     flex: 1;
     overflow-y: auto;
     padding: 20px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center content horizontally */
+}
+
+.history-stream-content {
+    width: 100%;
+    max-width: 900px; /* Max width for readability */
 }
 
 /* Reuse existing History Group styles but grouped in stream */
@@ -490,6 +498,7 @@ body.rail-collapsed .footer-link span:not(.material-symbols-outlined) {
     border-radius: var(--radius-md);
     margin-bottom: var(--space-md);
     overflow: hidden;
+    width: 100%; /* Ensure it takes up the width of the container */
 }
 
 .history-group[open] {

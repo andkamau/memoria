@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Data
         fullHistory: [],
         journeys: [], // { title, pages: [], relevance, isTopSite }
-        isLoadingJourneys: true
+        isLoadingJourneys: true,
+        journeysError: null // { message: string, clickable: boolean }
     };
 
     // --- DOM Elements ---
@@ -85,6 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadJourneys() {
         try {
+            state.journeysError = null;
+            state.isLoadingJourneys = true;
+            renderSidebar(); // Show loading state
+
             // Check Cache
             const cachedData = await chrome.storage.local.get(['cachedJourneys', 'journeysTimestamp']);
             const now = Date.now();
@@ -99,9 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Generate New
-            state.isLoadingJourneys = true;
-            renderSidebar(); // Show loading state
-
             const result = await createJourneysFromHistory(state.fullHistory);
             state.journeys = result.journeys; // Combined Top Sites + Semantic
 
@@ -113,10 +115,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Failed to load journeys:", error);
-            // If API Key missing, we might want to show a prompt in the sidebar
-            if (error.message === "API_KEY_MISSING") {
-                state.journeysError = "API Key Missing";
+            let userMessage = "An unexpected error occurred while generating Journeys.";
+            let clickable = false;
+
+            switch (error.message) {
+                case "API_KEY_MISSING":
+                    userMessage = "⚠️ Gemini API Key not set. Please add it in settings.";
+                    clickable = true;
+                    break;
+                case "API_AUTH_ERROR":
+                    userMessage = "⚠️ API Key is invalid or has insufficient permissions.";
+                    clickable = true;
+                    break;
+                case "API_QUOTA_EXCEEDED":
+                    userMessage = "🚦 AI service quota reached. Please try again later.";
+                    break;
+                case "NETWORK_ERROR":
+                    userMessage = "📡 Network error. Please check your connection.";
+                    break;
+                case "API_SERVER_ERROR":
+                    userMessage = "⚙️ AI service is temporarily unavailable. Please try again later.";
+                    break;
+                case "API_EMPTY_RESPONSE":
+                case "API_INVALID_FORMAT":
+                    userMessage = "🤔 AI service returned an unexpected response. Please try again.";
+                    break;
+                 case "API_MAX_RETRIES":
+                    userMessage = "⏳ AI service is currently busy or unreachable. Please try again later.";
+                    break;
+                default:
+                    if (error.message && error.message.startsWith("API_ERROR")) {
+                        userMessage = "🚫 Error communicating with AI service.";
+                    }
+                    break;
             }
+            state.journeysError = { message: userMessage, clickable: clickable };
         } finally {
             state.isLoadingJourneys = false;
             renderSidebar();
@@ -148,18 +181,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (state.journeysError) {
+            const isClickable = state.journeysError.clickable;
             container.innerHTML = `
-                <div class="loading-state" style="color: var(--md-sys-color-error); cursor: pointer;" id="sidebar-error-msg">
-                    ⚠️ Setup Required to see Journeys
+                <div class="loading-state" style="color: var(--md-sys-color-error); ${isClickable ? 'cursor: pointer;' : ''}" id="sidebar-error-msg">
+                    ${state.journeysError.message}
                 </div>
              `;
-            document.getElementById('sidebar-error-msg').addEventListener('click', () => {
-                chrome.runtime.openOptionsPage();
-            });
+            if (isClickable) {
+                document.getElementById('sidebar-error-msg').addEventListener('click', () => {
+                    chrome.runtime.openOptionsPage();
+                });
+            }
             return;
         }
 
-        if (state.journeys.length === 0) {
+        if (!state.journeys || state.journeys.length === 0) {
             container.innerHTML = '<div class="loading-state">No journeys found yet. Browsing more helps!</div>';
             return;
         }
@@ -168,13 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = `journey-card genux-ripple ${state.activeContext === index ? 'active' : ''}`;
 
-            // Icon
             const iconName = journey.isTopSite ? 'star' : 'auto_awesome';
-            const iconColor = journey.isTopSite ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-tertiary)';
 
-            // Metadata Chips
-            // Assuming journey might have metadata or we derive it from pages
-            // For now, let's show date range or item count as chips if not strictly metadata
             const itemCount = journey.pages.length;
             const timeLabel = journey.pages.length > 0 ?
                 new Date(journey.pages[0].lastVisitTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
@@ -216,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 items = journey.pages;
                 els.viewTitle.textContent = journey.title;
             } else {
-                // Fallback
                 items = state.fullHistory;
                 state.activeContext = 'all';
                 els.viewTitle.textContent = "All History";
@@ -263,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderHistoryGroups(items) {
-        const container = els.contentArea;
+        const container = els.contentArea.querySelector('.history-stream-content');
         container.innerHTML = '';
 
         if (items.length === 0) {
@@ -271,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Group by Date
         const grouped = {};
         items.forEach(item => {
             const date = new Date(item.lastVisitTime).toLocaleDateString(undefined, {
@@ -281,8 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
             grouped[date].push(item);
         });
 
-        // Always expand Today, others collapsed by default?
-        // Or if searching/filtering small set, expand all.
         const shouldExpandAll = state.searchQuery.length > 0 || items.length < 10;
         const todayStr = new Date().toLocaleDateString(undefined, {
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -290,8 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (const [date, dayItems] of Object.entries(grouped)) {
             const isExpanded = (date === todayStr || shouldExpandAll) ? 'open' : '';
-
-            // Limit shown items per group if huge? No, user can scroll.
 
             const groupEl = document.createElement('details');
             groupEl.className = 'history-group';
@@ -316,14 +341,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <img src="${faviconUrl}" class="favicon" alt="" loading="lazy">
                                 </div>
                                 <a href="${item.url}" target="_blank" title="${item.title}">${item.title || item.url}</a>
-                                ${item.metadata ? item.metadata.map(m => `<span class="metadata-chip chip-${m.type}">${m.label}</span>`).join('') : ''}
                                 <span class="domain">${domain}</span>
                             </li>
                         `;
                     }).join('')}
                 </ul>
             `;
-
             container.appendChild(groupEl);
         }
     }

@@ -73,6 +73,20 @@
             background-color: #45a049;
         }
 
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 1.5rem;
+        }
+
+        button.remove {
+            background-color: #e74c3c;
+        }
+
+        button.remove:hover {
+            background-color: #c0392b;
+        }
+
         #status {
             margin-top: 1rem;
             text-align: center;
@@ -111,7 +125,10 @@
             <input type="password" id="apiKey" placeholder="Enter your Gemini API key">
         </div>
 
-        <button id="save">Save Settings</button>
+        <div class="button-group">
+            <button id="save">Save Key</button>
+            <button id="remove" class="remove">Remove Key</button>
+        </div>
         <div id="status"></div>
     </div>
     <script src="options.js"></script>

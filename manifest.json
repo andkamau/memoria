@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Memoria",
-  "version": "1.0",
+  "version": "1.0.1",
   "description": "An AI-powered way to explore your browsing history.",
   "permissions": [
     "history",
