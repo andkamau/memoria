@@ -3,6 +3,7 @@
   "name": "Memoria",
   "version": "1.0.1",
   "description": "An AI-powered way to explore your browsing history.",
+  "homepage_url": "https://andkamau.github.io/memoria",
   "permissions": [
     "history",
     "favicon",
