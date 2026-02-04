@@ -1,23 +1,28 @@
 ## Memoria: Your AI-Powered Browsing History
 
 **Short Description (132 chars max):**
-Rediscover your browsing with Memoria, an AI-powered history that automatically organizes your activity into meaningful "Journeys".
+Supercharge your history! Memoria uses AI to group browsing into themed "Journeys" for easy rediscovery.
 
 ---
 
 **Full Description:**
 
-Tired of scrolling through an endless, chronological list of links? Memoria reimagines your browser history, transforming it from a simple log into an intelligent, organized, and searchable map of your digital life.
+Tired of losing track of your research or sifting through endless history lists? Memoria transforms your Chrome browsing history into an intelligent, AI-organized experience.
 
-Powered by advanced AI, Memoria automatically groups your browsing sessions into coherent "Journeys". Whether you were researching a new project, planning a trip, or shopping for the perfect gift, Memoria brings related pages together, giving you a clear, contextual view of your past activities.
+**Rediscover Your Digital Footprints with AI Journeys:**
+
+Memoria's core feature is "Journeys." Our AI analyzes your browsing patterns, automatically grouping visited pages by topic and task. Whether you're deep into project research, planning your next vacation, or comparing products, Memoria clusters related pages together, making it effortless to pick up where you left off or review your thought process.
 
 **Key Features:**
 
-*   **AI-Powered Journeys:** Forget time-based grouping. Memoria uses AI to understand the *content* of your browsing, creating smart, thematic collections of your history.
-*   **Elegant & Fast Interface:** Inspired by modern, minimalist design, Memoria provides a clean, professional, and lightweight experience that loads almost instantly.
-*   **Powerful Search:** Quickly find what you're looking for across all your history and within your Journeys.
-*   **Privacy-Focused:** Memoria helps you manage your history, not hoard it. A convenient link to Chrome's native data management tools puts you in control.
+*   ✨ **AI-Powered Journeys:** Beyond simple chronology, Memoria understands the *context* of your browsing, creating smart, thematic collections.
+*   🚀 **Fast & Fluid Interface:** Enjoy a clean, modern, and professional UI that replaces the default history page and loads instantly.
+*   🔍 **Efficient Search:** Quickly locate any page within your entire history or inside specific Journeys.
+*   📅 **Flexible Views:** Switch between the innovative "Journeys" view and a traditional "All History" list with date filters.
+*   🔒 **Privacy Conscious:** Your history data is processed locally. We provide a direct link to Chrome's built-in tools for clearing your browsing data, keeping you in control.
 
-Stop losing your train of thought. Stop endlessly scrolling. Start exploring your history with intelligence.
+**How it Works:**
 
-Install Memoria and experience a new way to remember.
+Memoria runs locally in your browser. To enable the AI Journey categorization, you'll need to provide your own Google Gemini API key in the extension settings. This ensures your data remains private and leverages the power of cutting-edge AI.
+
+Stop just browsing, start journeying. Install Memoria today and unlock the true potential of your browsing history!
