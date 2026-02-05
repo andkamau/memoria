@@ -20,8 +20,8 @@
     "history": "index.html"
   },
   "icons": {
-    "16": "assets/icon16.png",
-    "48": "assets/icon48.png",
-    "128": "assets/icon128.png"
+    "16": "docs/assets/icon16.png",
+    "48": "docs/assets/icon48.png",
+    "128": "docs/assets/icon128.png"
   }
 }
