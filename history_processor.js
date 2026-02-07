@@ -24,7 +24,7 @@ function getTopDomains(historyItems) {
 }
 
 /**
- * Constructs a detailed prompt for the gemini-2.5-flash-lite model to analyze browser history.
+ * Constructs a detailed prompt for the gemini-3-flash-preview model to analyze browser history.
  * @param {Array<Object>} historyItems - An array of Chrome history items, pruned for brevity.
  * @param {Array<string>} topDomains - List of top 5 domains to generate titles for.
  * @returns {string} The formatted prompt string.
